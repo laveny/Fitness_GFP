@@ -4,8 +4,8 @@
 
 ## 1. find barcode from illumina rawdata
 
-Rscript GFP_illumina_run.R
+Rscript illumina_run.R
 
 ## 2. calculate fitness
 
-Rscript GFP_fitness.R 
+Rscript cal_fitness.R 
