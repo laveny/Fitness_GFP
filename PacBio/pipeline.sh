@@ -162,9 +162,12 @@ awk -F"\t" '{print $3}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_onl
 
 awk '{print ">"$0"\n"$0}'  ${Main}/3.call_needle_mut/${filename}.uniq_bar.txt > ${Main}/3.call_needle_mut/${filename}.uniq_bar.fa
 
-awk -F"\t" '{print $3"\t"$4}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq -c > ${Main}/3.call_needle_mut/${filename}.bar_mut_c.txt
+awk -F"\t" '{print $3"\t"$4}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq -c > ${Main}/3.call_needle_mut/${filename}.bar_mut_c.txt  ## for TU, TG
+#awk -F"\t" '{print $3"\t"$5}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq -c > ${Main}/3.call_needle_mut/${filename}.bar_mut_c.txt  ## for AU, AG
 
-awk -F"\t" '{print $4"\t"$5"\t"$6}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq > ${Main}/3.call_needle_mut/${filename}.mut_pro_stop.txt 
+
+awk -F"\t" '{print $4"\t"$5"\t"$6}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq > ${Main}/3.call_needle_mut/${filename}.mut_pro_stop.txt  ## for TU, TG
+#awk -F"\t" '{print $5"\t"$6"\t"$7}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq > ${Main}/3.call_needle_mut/${filename}.mut_pro_stop.txt  ## for AU, AG
 
 
 # using slidesort to find call barcode clusters
