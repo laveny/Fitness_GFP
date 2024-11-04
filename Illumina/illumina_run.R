@@ -22,7 +22,7 @@ mclapply(files, function(x){
   output_base = str_match(x,"/([sS]*\\d+[-2]*)[-_]FKDL")
   output_base = output_base[2]
   print(output_base)
-  system(command = paste0("~/GFP_Illumina/GFP_index_illumina_barcode_calling.py ",
+  system(command = paste0("~/GFP_Illumina/index_illumina_barcode_calling.py ",
                           fq1, ' ', fq2, ' ', output_dir, ' ', output_base))
     
   }, mc.cores = 100)
