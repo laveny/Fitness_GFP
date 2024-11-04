@@ -447,7 +447,7 @@ fun_cal_fitness = function(fn, OD.exp.f, TODO_SAM){
 ## 4. Main Function for fitness calculation
 
 
-SAM_List = c('AGS','TGS')
+SAM_List = c('AGS','TGS','AGY','TGY','AUU','AUY','AUS','TUU','TUY','TUS')
 
 mclapply(SAM_List, function(TODO_SAM){
         SaveBase = paste0(SaveBase,TODO_SAM,'/')
