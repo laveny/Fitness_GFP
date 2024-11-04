@@ -423,22 +423,22 @@ fun_cal_fitness = function(fn, OD.exp.f, TODO_SAM){
 
     for( x in c('D1','D3','D5','D7')) {
 
-        generation = OD.f[OD.f$Time == x,]$SUM_generation
+        generation = as.numeric(OD.f %>% filter(Time == x) %>% select(SUM_generation))
                             
         REF = fn[fn$geno == "WT",][[paste0(x, '_Ratio')]]
-        fn[[paste0(x, '_rg')]] = fn[[paste0(x, '_Ratio')]]/REF * (1/generation)
+        fn[[paste0(x, '_rg')]] = (fn[[paste0(x, '_Ratio')]]/REF) ^ (1/generation)
                                           
         for(i in c(1,2,3)){
             REF = fn[fn$geno == "WT",][[paste0(x, '_rep',i,'_Ratio')]]
-            generation = OD.f[OD.f$Time == x,][[paste0('SUM_REP',i,'_generation')]]
-            fn[[paste0(x, '_rep',i, '_rg')]] = fn[[paste0(x, '_rep',i,'_Ratio')]]/REF * (1/generation)
+            generation = as.numeric(OD.f %>% filter(Time == x) %>% select(paste0('SUM_REP',i,'_generation')))
+            fn[[paste0(x, '_rep',i, '_rg')]] = (fn[[paste0(x, '_rep',i,'_Ratio')]]/REF) ^ (1/generation)
                                              
         }                                  
 
     }
 
     return(fn)        
-}                                                                         
+}                                                                                                 
 
 
 
