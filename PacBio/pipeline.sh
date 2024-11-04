@@ -154,16 +154,17 @@ all is finished
 done
 ${a}
 EOL
-
+# remove ins|del
+grep -Ev "ins|del" ${Main}/3.call_needle_mut/${filename}.needle.mut.txt > ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt
 
 # Arrange needle output
-awk -F"\t" '{print $3}' ${Main}/3.call_needle_mut/${filename}.needle.mut.txt |sort|uniq  > ${Main}/3.call_needle_mut/${filename}.uniq_bar.txt
+awk -F"\t" '{print $3}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq  > ${Main}/3.call_needle_mut/${filename}.uniq_bar.txt
 
 awk '{print ">"$0"\n"$0}'  ${Main}/3.call_needle_mut/${filename}.uniq_bar.txt > ${Main}/3.call_needle_mut/${filename}.uniq_bar.fa
 
-awk -F"\t" '{print $3"\t"$4}' ${Main}/3.call_needle_mut/${filename}.needle.mut.txt |sort|uniq -c > ${Main}/3.call_needle_mut/${filename}.bar_mut_c.txt
+awk -F"\t" '{print $3"\t"$4}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq -c > ${Main}/3.call_needle_mut/${filename}.bar_mut_c.txt
 
-awk -F"\t" '{print $4"\t"$5"\t"$6}' ${Main}/3.call_needle_mut/${filename}.needle.mut.txt |sort|uniq > ${Main}/3.call_needle_mut/${filename}.mut_pro_stop.txt 
+awk -F"\t" '{print $4"\t"$5"\t"$6}' ${Main}/3.call_needle_mut/${filename}.needle.mut.sub_only.txt |sort|uniq > ${Main}/3.call_needle_mut/${filename}.mut_pro_stop.txt 
 
 
 # using slidesort to find call barcode clusters
