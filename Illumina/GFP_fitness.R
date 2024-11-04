@@ -82,6 +82,51 @@ fit.model <- lm(cells ~ poly(od, 10),data = od.f)
 
 OD.exp.f <- read_excel("/culture_OD.xlsx", sheet = 2)
 
+## generation for repeat1 
+OD.exp.f <- OD.exp.f %>% mutate(od = REP1)
+
+OD.exp.f$cells_cons <- predict(fit.model, OD.exp.f)
+
+OD.exp.f$cells = OD.exp.f$cells_cons *  OD.exp.f$VOL
+
+OD.exp.f$REP1_generation = log2(OD.exp.f$cells / OD.exp.f$TRANS)
+
+OD.exp.f <- OD.exp.f %>% group_by(Sample) %>%
+    arrange(Stimes) %>%
+    mutate(SUM_REP1_generation = cumsum(REP1_generation)) %>%
+    ungroup()
+
+
+## generation for repeat2
+OD.exp.f <- OD.exp.f %>% mutate(od = REP2)
+
+OD.exp.f$cells_cons <- predict(fit.model, OD.exp.f)
+
+OD.exp.f$cells = OD.exp.f$cells_cons *  OD.exp.f$VOL
+
+OD.exp.f$REP2_generation = log2(OD.exp.f$cells / OD.exp.f$TRANS)
+
+OD.exp.f <- OD.exp.f %>% group_by(Sample) %>%
+    arrange(Stimes) %>%
+    mutate(SUM_REP2_generation = cumsum(REP2_generation)) %>%
+    ungroup()
+
+
+## generation for repeat3
+OD.exp.f <- OD.exp.f %>% mutate(od = REP3)
+
+OD.exp.f$cells_cons <- predict(fit.model, OD.exp.f)
+
+OD.exp.f$cells = OD.exp.f$cells_cons *  OD.exp.f$VOL
+
+OD.exp.f$REP3_generation = log2(OD.exp.f$cells / OD.exp.f$TRANS)
+
+OD.exp.f <- OD.exp.f %>% group_by(Sample) %>%
+    arrange(Stimes) %>%
+    mutate(SUM_REP3_generation = cumsum(REP3_generation)) %>%
+    ungroup()
+
+## generation for mean of three repeats
 OD.exp.f <- OD.exp.f %>% mutate(od = (REP1 + REP2 + REP2) /3)
 
 OD.exp.f$cells_cons <- predict(fit.model, OD.exp.f)
@@ -91,27 +136,28 @@ OD.exp.f$cells = OD.exp.f$cells_cons *  OD.exp.f$VOL
 OD.exp.f$generation = log2(OD.exp.f$cells / OD.exp.f$TRANS)
 
 OD.exp.f <- OD.exp.f %>% group_by(Sample) %>%
-  arrange(Time) %>%
-  mutate(SUM_generation = cumsum(generation)) %>%
-  ungroup()
-
+    arrange(Stimes) %>%
+    mutate(SUM_generation = cumsum(generation)) %>%
+    ungroup()
+                 
 #### SaveOut ####
 save(OD.exp.f, file = paste0(SaveBase,'OD.Rdata'))
 
 
 ## 3. Functions
 SUBSET_SAMPLE = function(Sample.fn, TODO_SAM, fn.raw){
-  to_contains = unlist(Sample.fn %>% filter(grepl(TODO_SAM, new_Sample)) %>% select(ID))
-  pattern <- paste0('[Ss]*',paste(to_contains, collapse = "|"), "$")
-  
-  fn <- fn.raw %>% select('barcode',matches(pattern))
-  
-  if(ncol(fn) != length(to_contains) + 1){
-    
-    print('error for selection')
-  }
-  
-  return(fn)
+        to_contains = unlist(Sample.fn %>% filter(grepl(TODO_SAM, new_Sample)) %>% select(ID))
+       pattern <- paste0("^([Ss](", paste(to_contains, collapse = "|"), ")|", paste(to_contains, collapse = "|"), ")$")
+
+
+        fn <- fn.raw %>% select('barcode',matches(pattern))
+
+        if(ncol(fn) != 14 + 1){
+
+            print('error for selection')
+        }
+
+        return(fn)
 }
 
 READ_Cluster_file = function(Cluster.file){
@@ -275,14 +321,14 @@ FILTER_WT = function(fn, SaveBase, SIM = T){
   ## 1.1 draw cutoff plot
   fn.wt <- fn %>% filter(geno == 'WT')
   p.Wt <- FUN_CUTOFF_Draw(fn.wt,'D0_readsSUM')
-  if(SIM){FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'CUTOFF_WT_D0_SIM'), 8, 12)} else {FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'CUTOFF_WT_D0_UNSIM'), 8, 12)}
+  if(SIM){FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'_CUTOFF_WT_D0_SIM'), 8, 12)} else {FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'_CUTOFF_WT_D0_UNSIM'), 8, 12)}
   
   ## 1.2 filter D0_readsSUM , remove those < 100
   bar.100 = fn.wt[fn.wt$D0_readsSUM >=100,]$barcode
   
   ## 2. filter D7 readsSUM
   p.Wt <- FUN_CUTOFF_Draw(fn.wt,'D7_readsSUM', list_cutoff = seq(0,100,10), list_lines = c(1,3,5,7, 10, 20, 50), CUT = 5)
-  if(SIM){FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'CUTOFF_WT_D7_SIM'), 8, 12)} else {FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'CUTOFF_WT_D7_UNSIM'), 8, 12)}
+  if(SIM){FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'_CUTOFF_WT_D7_SIM'), 8, 12)} else {FUN_Plot_Save(p.Wt, Path = paste0(SaveBase,'_CUTOFF_WT_D7_UNSIM'), 8, 12)}
   
   bar.5 = fn.wt[fn.wt$D7_readsSUM >=5,]$barcode
   
@@ -346,40 +392,55 @@ fun_cal_geno = function(fn){
 }
 
 
-fun_cal_fitness = function(fn, OD.exp.f, TODO_SAM){
-  setDT(fn)
-  OD.f <- OD.exp.f %>% filter(Sample == TODO_SAM)
-  
-  for( x in c('D1','D3','D5','D7')) {
-    
-    generation = OD.f[OD.f$Time == x,]$SUM_generation
-    
-    fn[, (paste0(x, '_Ratio')) := lapply(paste0(x, '_readsSUM'), function(old_col) get(old_col) / D0_readsSUM)]                                
-    REF = fn[fn$geno == "WT",][[paste0(x, '_Ratio')]]
-    fn[, (paste0(x, '_rg')) := lapply(paste0(x, '_Ratio'), function(old_col) (get(old_col) / REF)^(1/generation) )]     
-    
-    for(i in c(1,2,3)){
-      fn[, (paste0(x, '_rep',i,'_Ratio')) := lapply(paste0(TODO_SAM,'_',x, '_rep',i), function(old_col) get(old_col) / D0_readsSUM)]
-      REF = fn[fn$geno == "WT",][[paste0(x, '_rep',i,'_Ratio')]]
-      fn[, (paste0(x, '_rep',i,'_rg')) := lapply(paste0(x, '_rep',i,'_Ratio'), function(old_col) (get(old_col) / REF)^(1/generation) )]                                               
-    }                                  
-    
+fun_cal_Ratio = function(fn, TODO_SAM){
+    for(x in c('D0')) {
+        fn[[paste0(x, '_readsSUM_CPM')]] =  fn[[paste0(x, '_readsSUM')]] / sum(fn[[paste0(x, '_readsSUM')]]) * 10^6
+        for(i in c(1,2)){
+        fn[[paste0(x, '_rep',i,'_CPM')]] = fn[[paste0(TODO_SAM,'_',x, '_rep',i)]] / sum(fn[[paste0(TODO_SAM,'_',x, '_rep',i)]]) * 10^6     
+    }                                        
+             
   }
-  
-  fn = as.data.frame(fn)
-  return(fn)        
+                                                    
+   for( x in c('D1','D3','D5','D7')) {
+        fn[[paste0(x, '_readsSUM_CPM')]] =  fn[[paste0(x, '_readsSUM')]] / sum(fn[[paste0(x, '_readsSUM')]]) * 10^6
+        fn[[paste0(x, '_Ratio')]] =  fn[[paste0(x, '_readsSUM_CPM')]] / fn[["D0_readsSUM_CPM"]]                                      
+        for(i in c(1,2,3)){
+            fn[[paste0(x, '_rep',i,'_CPM')]] = fn[[paste0(TODO_SAM,'_',x, '_rep',i)]] / sum(fn[[paste0(TODO_SAM,'_',x, '_rep',i)]]) * 10^6
+            fn[[paste0(x, '_rep',i,'_Ratio')]] = fn[[paste0(x, '_rep',i,'_CPM')]] / fn[["D0_readsSUM_CPM"]] 
+        }                                             
+  }                                                 
+
+    fn = as.data.frame(fn)
+    return(fn)        
 }                                       
 
 
-fun_select = function(fn){
-  
-  fn <- fn %>% mutate(n_mut = ifelse(geno == 'WT', 0, lapply(geno, function(x) length(unlist(strsplit(x, ' ')))) )) %>% mutate(n_mut = as.integer(n_mut))
-  
-  fn <- fn %>% filter(n_mut <=2)
-  
-  return(fn)
-  
-}
+fun_cal_fitness = function(fn, OD.exp.f, TODO_SAM){
+    
+    fn <- fun_cal_Ratio(fn, TODO_SAM)
+    
+    OD.f <- OD.exp.f %>% filter(Sample == TODO_SAM)
+
+    for( x in c('D1','D3','D5','D7')) {
+
+        generation = OD.f[OD.f$Time == x,]$SUM_generation
+                            
+        REF = fn[fn$geno == "WT",][[paste0(x, '_Ratio')]]
+        fn[[paste0(x, '_rg')]] = fn[[paste0(x, '_Ratio')]]/REF * (1/generation)
+                                          
+        for(i in c(1,2,3)){
+            REF = fn[fn$geno == "WT",][[paste0(x, '_rep',i,'_Ratio')]]
+            generation = OD.f[OD.f$Time == x,][[paste0('SUM_REP',i,'_generation')]]
+            fn[[paste0(x, '_rep',i, '_rg')]] = fn[[paste0(x, '_rep',i,'_Ratio')]]/REF * (1/generation)
+                                             
+        }                                  
+
+    }
+
+    return(fn)        
+}                                                                         
+
+
 
 
 
@@ -389,93 +450,95 @@ fun_select = function(fn){
 SAM_List = c('AGS','TGS')
 
 mclapply(SAM_List, function(TODO_SAM){
-  
-  ## 1. SUBSET fn.raw
-  sub.f = SUBSET_SAMPLE(Sample.fn, TODO_SAM, fn.raw)
-  sub.f = sub.f[sub.f$barcode != "",]
-  colnames(sub.f) = gsub('^[Ss]','',colnames(sub.f))
-  rename_list <- setNames(Sample.fn$official_ID[Sample.fn$ID %in% colnames(sub.f)], 
-                          Sample.fn$ID[Sample.fn$ID %in% colnames(sub.f)])
-  rename_list[grepl(TODO_SAM, rename_list)]
-  sub.f <- sub.f %>% plyr::rename(rename_list)
-  
-  ## 2. get geno.file and cluster.file
-  Cluster.file = File.list[[sub('[SUY]$','',TODO_SAM)]][1]
-  geno.file = File.list[[sub('[SUY]$','',TODO_SAM)]][2]
-  
-  
-  ## 3. cluster
-  
-  fn = FUN_Cluster(sub.f, geno.file, Cluster.file, sim = T)
-  
-  stats = list()
-  Raw_number_of_reads <- colSums(sub.f[sapply(sub.f, is.numeric)], na.rm = TRUE)
-  stats[[1]] = as.data.frame(Raw_number_of_reads)
-  
-  number_of_reads_PacBio <- colSums(fn[sapply(fn, is.numeric)], na.rm = TRUE)
-  stats[[2]] = as.data.frame(number_of_reads_PacBio)
-  
-  
-  ## 4. Cal readsSUM and Drop barcodes with T0 readsSUM == 0
-  to_sum = c('D0','D1','D3','D5','D7')
-  fn <- FUN_cal_SUM(fn, to_sum)
+        SaveBase = paste0(SaveBase,TODO_SAM,'/')
+        if (! dir.exists(SaveBase)){
+            
+            dir.create(SaveBase)
+        }
+            ## SUBSET fn.raw
+        sample.sub <- Sample.fn %>% filter(grepl(TODO_SAM, official_ID))
+        sub.f = SUBSET_SAMPLE(sample.sub, TODO_SAM, fn.raw)
+        sub.f = sub.f[sub.f$barcode != "",]
+        colnames(sub.f) = gsub('^[Ss]','',colnames(sub.f))
+        rename_list <- setNames(sample.sub$official_ID[sample.sub$ID %in% colnames(sub.f)], 
+                                sample.sub$ID[sample.sub$ID %in% colnames(sub.f)])
+        rename_list[grepl(TODO_SAM, rename_list)]
+        sub.f <- sub.f %>% plyr::rename(rename_list)
+    
+            ## get geno.file and cluster.file
+        Cluster.file = File.list[[sub('[SUY]$','',TODO_SAM)]][1]
+        geno.file = File.list[[sub('[SUY]$','',TODO_SAM)]][2]
 
-  fn <- FUN_Drop0Bar(fn)
-  
-  ## 5.filter WT
-  ## a. D0 readsSUM >= 100
-  ## b. D7 readsSUM >= 5
-  ## c. D7 readsSUM / D0 readsSUM within MEAN ± SD
-  fn.wt.filter <- FILTER_WT(fn = fn, SaveBase = paste0(SaveBase, TODO_SAM),SIM = T)
-  
-  fn.WT.PASS = fn.wt.filter$FINAL
-  
-  ## 6.filter WT barcode and cal fn.geno
-  fn <- fn %>% filter(geno != 'WT' | barcode %in% fn.WT.PASS)
-  
-  
-  fn_gene = fun_cal_geno(fn)
 
-  
-  
-  # 7. filter Mutant
-  ## D0 readsSUM >= 100
-  
-  fn.VAR.PASS = FILTER_VAR(fn = fn_gene, SaveBase = paste0(SaveBase,TODO_SAM),SIM = T)
- 
-  
-  ## calculate number of reads PASSed filter
-  fn.cal = fn %>% filter(geno %in% fn.VAR.PASS)
-  
-  
-  number_of_reads_PASS <- colSums(fn.cal[sapply(fn.cal, is.numeric)], na.rm = TRUE)
-  number_of_barcode <- sapply(fn.cal, function(x) sum(x > 0))
-  stats[[3]] = as.data.frame(number_of_reads_PASS)
-  stats[[4]] = as.data.frame(number_of_barcode)
+        ## cluster
 
-  
-  fn_gene = fn_gene %>% filter(geno %in% c('WT',fn.VAR.PASS))
+        fn = FUN_Cluster(sub.f, geno.file, Cluster.file, sim = T)
 
-  
-  # 8. cal fitness
-  fn_fitness = fun_cal_fitness(fn_gene, OD.exp.f,TODO_SAM)
-  fn_fitness <- fn_fitness %>% mutate(n_mut = ifelse(geno == 'WT', 0, lapply(geno, function(x) length(unlist(strsplit(x, ' ')))) )) %>% mutate(n_mut = as.integer(n_mut))
-  
-  save(fn_fitness, file = paste0(SaveBase, TODO_SAM, '_fn_fitness.Rdata'))
-  
-  fn_select = fun_select(fn_fitness)
-  save(fn_select,  file = paste0(SaveBase, TODO_SAM, '.Rdata'))
+        stats = list()
+        Raw_number_of_reads <- colSums(sub.f[sapply(sub.f, is.numeric)], na.rm = TRUE)
+        stats[[1]] = as.data.frame(Raw_number_of_reads)
+    
+        number_of_reads_PacBio_SIM <- colSums(fn[sapply(fn, is.numeric)], na.rm = TRUE)
+        stats[[2]] = as.data.frame(number_of_reads_PacBio_SIM)
 
+    
+        ## Cal readsSUM and Drop barcodes with T0 readsSUM == 0
+        to_sum = c('D0','D1','D3','D5','D7')
+        fn <- FUN_cal_SUM(fn, to_sum)
+
+        fn <- FUN_Drop0Bar(fn)
   
-  ## stats
-  number_of_Single <- sapply(fn_fitness %>% filter(n_mut == 1), function(x) sum(x > 0))
-  number_of_Double <- sapply(fn_fitness %>% filter(n_mut == 2), function(x) sum(x > 0))
-  number_of_Triple <- sapply(fn_fitness %>% filter(n_mut == 3), function(x) sum(x > 0))
-  stats[[5]] = as.data.frame(number_of_Single)
-  stats[[6]] = as.data.frame(number_of_Double)
-  stats[[7]] = as.data.frame(number_of_Triple)
-  
-  save(stats, file = paste0(SaveBase, TODO_SAM, '_stats.Rdata'))
-  
+        save(fn, file = paste0(SaveBase, TODO_SAM,'_fn_BeforeFill.Rdata'))
+    
+        ## filter WT
+        ## 1. D0 readsSUM >= 100
+        ## 2. D7 readsSUM >= 5
+        ## 3. D7 readsSUM / D0 readsSUM within MEAN ± SD
+        fn.wt.filter <- FILTER_WT(fn = fn, SaveBase = paste0(SaveBase, TODO_SAM),SIM = T)    
+        fn.WT.PASS = fn.wt.filter$FINAL
+
+    
+        ## filter WT barcode
+        fn <- fn %>% filter(geno != 'WT' | barcode %in% fn.WT.PASS)
+
+        # filter Mutant
+        ## D0 readsSUM >= 100
+        fn_gene = fun_cal_geno(fn)
+    
+        fn.VAR.PASS = FILTER_VAR(fn = fn_gene, SaveBase, SIM = T)
+    
+        fn = fn %>% filter(geno %in% c(fn.VAR.PASS, 'WT'))
+    
+        ## cal Ratio for per barcode
+        fn.bar_Ratio <- fun_cal_Ratio(fn, TODO_SAM)
+        save(fn.bar_Ratio, file = paste0(SaveBase, TODO_SAM, '_fn.bar.Ratio.Rdata'))
+    
+        ## cal fn_gene
+        
+        fn_gene = fun_cal_geno(fn)
+        save(fn_gene,ile = paste0(SaveBase, TODO_SAM, '_fn_gene.Rdata'))
+        
+    
+        number_of_reads_PASS <- colSums(fn[sapply(fn, is.numeric)], na.rm = TRUE)
+        number_of_barcode <- sapply(fn, function(x) sum(x > 0))
+        stats[[3]] = as.data.frame(number_of_reads_PASS)
+        stats[[4]] = as.data.frame(number_of_barcode)
+    
+    
+        # cal fitness
+        fn_fitness = fun_cal_fitness(fn_gene, OD.exp.f,TODO_SAM)
+        fn_fitness <- fn_fitness %>% mutate(n_mut = ifelse(geno == 'WT', 0, lapply(geno, function(x) length(unlist(strsplit(x, ' ')))) )) %>% mutate(n_mut = as.integer(n_mut))
+       
+        save(fn_fitness, file = paste0(SaveBase, TODO_SAM, '_fn_fitness.Rdata'))
+        
+        ## stats
+        number_of_Single <- sapply(fn_fitness %>% filter(n_mut == 1), function(x) sum(x > 0))
+        number_of_Double <- sapply(fn_fitness %>% filter(n_mut == 2), function(x) sum(x > 0))
+        number_of_Triple<- sapply(fn_fitness %>% filter(n_mut == 3), function(x) sum(x > 0))
+        stats[[5]] = as.data.frame(number_of_Single)
+        stats[[6]] = as.data.frame(number_of_Double)
+        stats[[7]] = as.data.frame(number_of_Triple)
+       
+        save(stats, file = paste0(SaveBase, TODO_SAM, '_stats.Rdata'))
+
 }, mc.cores = length(SAM_List))
-
